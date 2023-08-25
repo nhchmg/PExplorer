@@ -1827,10 +1827,16 @@ UINT StartMenuRoot::GetLogoResId()
 
 void StartMenuRoot::CloseStartMenu(int id)
 {
-    if (_submenu)
-        CloseSubmenus();
-
-    if (IsStartMenuVisible()) ShowWindow(_hwnd, SW_HIDE);
+	if (_submenu)
+	{
+		CloseSubmenus();
+	}
+	
+	if (IsStartMenuVisible())
+	{
+		ShowWindow(_hwnd, SW_HIDE);
+	}
+	
 }
 
 bool StartMenuRoot::IsStartMenuVisible() const
@@ -1855,12 +1861,14 @@ void StartMenuRoot::ProcessKey(int vk)
 
 int StartMenuHandler::Command(int id, int code)
 {
+	
     switch (id) {
 
     // start menu root
 
     case IDC_PROGRAMS:
         CreateSubmenu(id, CSIDL_COMMON_PROGRAMS, CSIDL_PROGRAMS, ResString(IDS_PROGRAMS));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_EXPLORE:
@@ -1875,26 +1883,32 @@ int StartMenuHandler::Command(int id, int code)
 
     case IDC_DOCUMENTS:
         CreateSubmenu(id, CSIDL_PERSONAL, ResString(IDS_DOCUMENTS));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_RECENT:
         CreateSubmenu(id, CSIDL_RECENT, ResString(IDS_RECENT), STARTMENU_CREATOR(RecentStartMenu));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_FAVORITES:
         CreateSubmenu(id, CSIDL_COMMON_FAVORITES, CSIDL_FAVORITES, ResString(IDS_FAVORITES));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_BROWSE:
         CreateSubmenu(id, ResString(IDS_BROWSE), STARTMENU_CREATOR(BrowseMenu));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_SETTINGS:
         CreateSubmenu(id, ResString(IDS_SETTINGS), STARTMENU_CREATOR(SettingsMenu));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_SEARCH:
         CreateSubmenu(id, ResString(IDS_SEARCH), STARTMENU_CREATOR(SearchMenu));
+		ShowWindow(_hwnd, SW_SHOW);
         break;
 
     case IDC_START_HELP:
@@ -1909,14 +1923,16 @@ int StartMenuHandler::Command(int id, int code)
 
     case IDC_RESTART:
         CloseStartMenu(id);
-        ShowRestartDialog(g_Globals._hwndDesktop, EWX_REBOOT);
+        //ShowRestartDialog(g_Globals._hwndDesktop, EWX_REBOOT);
         /* An alternative way to do restart without shell32 help */
         //launch_file(_hwnd, TEXT("shutdown.exe"), SW_HIDE, TEXT("-r"));
+		launch_file(_hwnd, TEXT("wpeutil.exe"), SW_HIDE, TEXT("reboot"));
         break;
 
     case IDC_SHUTDOWN:
         CloseStartMenu(id);
-        ShowExitWindowsDialog(g_Globals._hwndDesktop);
+		launch_file(_hwnd, TEXT("wpeutil.exe"), SW_HIDE, TEXT("shutdown"));
+        //ShowExitWindowsDialog(g_Globals._hwndDesktop);
         break;
 
 #ifndef __REACTOS__

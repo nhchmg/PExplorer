@@ -176,6 +176,11 @@ LRESULT FileExplorerWindow::WndProc(UINT nmsg, WPARAM wparam, LPARAM lparam)
 
 int FileExplorerWindow::OpenDialog(HWND hwnd, String path)
 {
+	//control pannel bug
+	if (0 == wcsicmp(path.c_str(), L"::{26EE0668-A00A-44D7-9371-BEB064C98683}"))
+	{
+		return 0;
+	}
     HRESULT hr;
     IFileOpenDialog *pDlg = NULL;
     COMDLG_FILTERSPEC aFileTypes[] = {
@@ -194,7 +199,10 @@ int FileExplorerWindow::OpenDialog(HWND hwnd, String path)
     // NOTE: Error handling omitted here for clarity.
     //pDlg->SetFileTypes(_countof(aFileTypes), aFileTypes);
     pDlg->SetTitle(path.c_str());
-    pDlg->SetOptions(FOS_NOVALIDATE | FOS_ALLNONSTORAGEITEMS | FOS_ALLOWMULTISELECT | FOS_NODEREFERENCELINKS);
+
+	FILEOPENDIALOGOPTIONS fos = 0;
+	pDlg->GetOptions(&fos);
+    pDlg->SetOptions(fos | FOS_NOVALIDATE | FOS_ALLNONSTORAGEITEMS | FOS_ALLOWMULTISELECT | FOS_NODEREFERENCELINKS);
 
     IShellItem *psi = NULL;
     //LPITEMIDLIST pidlControlPanel;
@@ -217,6 +225,7 @@ int FileExplorerWindow::OpenDialog(HWND hwnd, String path)
     //PostMessage(hwnd, WM_CUSTOMDIALOG, (WPARAM)pDlg, (LPARAM)0);
     // Show the dialog.
     hr = pDlg->Show(hwnd);
+	//hr = pDlg->Show(NULL);
 
     // Unhook the event handler
     if (dwCookie != -1) pDlg->Unadvise(dwCookie);

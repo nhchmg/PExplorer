@@ -271,7 +271,8 @@ LRESULT CALLBACK Window::WindowWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPAR
         case WM_NCDESTROY:
             delete pThis;
             return 0;
-
+		case WM_KILLFOCUS:
+			return 0;
         default:
             return pThis->WndProc(nmsg, wparam, lparam);
         }

@@ -93,6 +93,7 @@ HRESULT IShellBrowserImpl::Exec(const GUID *pguidCmdGroup, DWORD nCmdID, DWORD n
 
 
 // process default command: look for folders and traverse into them
+/*
 HRESULT IShellBrowserImpl::OnDefaultCommand(IShellView *ppshv)
 {
     IDataObject *selection;
@@ -114,4 +115,151 @@ HRESULT IShellBrowserImpl::OnDefaultCommand(IShellView *ppshv)
     selection->Release();
 
     return hr;
+}
+*/
+/*
+HRESULT IShellBrowserImpl::OnDefaultCommand(IShellView *ppshv)
+{
+	
+	if (!ppshv)
+		return E_INVALIDARG;
+
+	IDataObject* pDataObj = NULL;
+	HRESULT hr = ppshv->GetItemObject(SVGIO_SELECTION, IID_IDataObject, (void**)&pDataObj);
+	if (SUCCEEDED(hr))
+	{
+		// 获取当前选中项的绝对PIDL
+		FORMATETC formatEtc = { (CLIPFORMAT)RegisterClipboardFormat(CFSTR_SHELLIDLIST), nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+		STGMEDIUM medium = {0};
+		hr = pDataObj->GetData(&formatEtc, &medium);
+		if (SUCCEEDED(hr))
+		{
+			LPIDA pIDA = reinterpret_cast<LPIDA>(GlobalLock(medium.hGlobal));
+			if (pIDA)
+			{
+				// 获取选中项的绝对PIDL
+				LPCITEMIDLIST pidlParent = reinterpret_cast<LPCITEMIDLIST>((LPBYTE)pIDA + pIDA->aoffset[0]);
+				LPCITEMIDLIST pidlChild = reinterpret_cast<LPCITEMIDLIST>((LPBYTE)pIDA + pIDA->aoffset[1]);
+				PIDLIST_ABSOLUTE pidlSelected = ILCombine(pidlParent, pidlChild);
+
+				if (pidlSelected)
+				{
+					// 使用ShellExecuteEx打开并选中项
+					SHELLEXECUTEINFO sei = { 0 };
+					sei.cbSize = sizeof(SHELLEXECUTEINFO);
+					sei.fMask = SEE_MASK_IDLIST;
+					sei.lpIDList = pidlSelected;
+					sei.nShow = SW_SHOWNORMAL;
+
+					if (ShellExecuteEx(&sei))
+					{
+						hr = S_OK;
+					}
+					else
+					{
+						hr = HRESULT_FROM_WIN32(GetLastError());
+					}
+					CoTaskMemFree(pidlSelected);
+				}
+				GlobalUnlock(medium.hGlobal);
+			}
+			ReleaseStgMedium(&medium);
+		}
+		pDataObj->Release();
+	}
+	return hr;
+}
+
+*/
+HRESULT IShellBrowserImpl::OnDefaultCommand(IShellView *ppshv)
+{
+	if (!ppshv)
+		return E_INVALIDARG;
+
+	IDataObject* pDataObj = nullptr;
+	HRESULT hr = ppshv->GetItemObject(SVGIO_SELECTION, IID_IDataObject, (void**)&pDataObj);
+	if (SUCCEEDED(hr))
+	{
+		FORMATETC formatEtc = { (CLIPFORMAT)RegisterClipboardFormat(CFSTR_SHELLIDLIST), nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+		STGMEDIUM medium = { 0 };
+		hr = pDataObj->GetData(&formatEtc, &medium);
+		if (SUCCEEDED(hr))
+		{
+			LPIDA pIDA = reinterpret_cast<LPIDA>(GlobalLock(medium.hGlobal));
+			if (pIDA)
+			{
+				LPCITEMIDLIST pidlParent = reinterpret_cast<LPCITEMIDLIST>((LPBYTE)pIDA + pIDA->aoffset[0]);
+				LPCITEMIDLIST pidlChild = reinterpret_cast<LPCITEMIDLIST>((LPBYTE)pIDA + pIDA->aoffset[1]);
+				PIDLIST_ABSOLUTE pidlSelected = ILCombine(pidlParent, pidlChild);
+
+				if (pidlSelected)
+				{
+					IShellFolder* pShellFolder = nullptr;
+					hr = SHBindToParent(pidlSelected, IID_IShellFolder, (void**)&pShellFolder, nullptr);
+					if (SUCCEEDED(hr))
+					{
+						PCUITEMID_CHILD pidlRelSelected = ILFindLastID(pidlSelected);
+
+						IContextMenu* pContextMenu = nullptr;
+						hr = pShellFolder->GetUIObjectOf(NULL, 1, &pidlRelSelected, IID_IContextMenu, nullptr, (void**)&pContextMenu);
+						if (SUCCEEDED(hr))
+						{
+							HMENU hMenu = CreatePopupMenu();
+							if (hMenu)
+							{
+								hr = pContextMenu->QueryContextMenu(hMenu, 0, FCIDM_SHVIEWFIRST, FCIDM_SHVIEWLAST, CMF_DEFAULTONLY);
+								if (SUCCEEDED(hr))
+								{
+									UINT uDefaultCmd = 0;
+									BOOL bFoundDefault = FALSE;
+
+									UINT uCount = GetMenuItemCount(hMenu);
+									for (UINT i = 0; i < uCount; ++i)
+									{
+										//TCHAR szMenuText[256] = { 0 }; // 分配一个足够大的缓冲区存储菜单项文本
+										MENUITEMINFO mii = { 0 };
+										mii.cbSize = sizeof(MENUITEMINFO);
+										mii.fMask = MIIM_ID | MIIM_STATE;// | MIIM_TYPE;
+										
+										//mii.dwTypeData = szMenuText; // 指定要接收菜单项文本的缓冲区
+										//mii.cch = sizeof(szMenuText) / sizeof(TCHAR); // 指定缓冲区的字符数
+										if (GetMenuItemInfo(hMenu, i, TRUE, &mii))
+										{
+											if (mii.fState & MFS_DEFAULT)
+											{
+												uDefaultCmd = mii.wID;
+												bFoundDefault = TRUE;
+												break;
+											}
+										}
+									}
+
+									if (bFoundDefault)
+									{
+										CMINVOKECOMMANDINFO cmi = { 0 };
+										cmi.cbSize = sizeof(CMINVOKECOMMANDINFO);
+										cmi.lpVerb = MAKEINTRESOURCEA(uDefaultCmd);
+										cmi.nShow = SW_SHOWNORMAL;
+										hr = pContextMenu->InvokeCommand(&cmi);
+									}
+								}
+								DestroyMenu(hMenu);
+							}
+							else
+							{
+								hr = E_FAIL;
+							}
+							pContextMenu->Release();
+						}
+						pShellFolder->Release();
+					}
+					CoTaskMemFree(pidlSelected);
+				}
+				GlobalUnlock(medium.hGlobal);
+			}
+			ReleaseStgMedium(&medium);
+		}
+		pDataObj->Release();
+	}
+	return hr;
 }

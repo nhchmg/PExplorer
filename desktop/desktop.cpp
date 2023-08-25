@@ -590,7 +590,7 @@ LRESULT DesktopWindow::WndProc(UINT nmsg, WPARAM wparam, LPARAM lparam)
         break;
 
     case WM_CLOSE:
-        ShowExitWindowsDialog(_hwnd);
+        //ShowExitWindowsDialog(_hwnd);
         break;
 
     case WM_SYSCOMMAND:
@@ -650,11 +650,12 @@ CRITICAL_SECTION wpcs;
 extern int OpenShellFolders(HWND hwnd, LPIDA pida);
 HRESULT DesktopWindow::OnDefaultCommand(LPIDA pida)
 {
+	return S_FALSE;
 #ifndef ROSSHELL    // in shell-only-mode fall through and let shell32 handle the command
     if (OpenShellFolders(NULL, pida))
         return S_OK;
 #endif
-    return E_NOTIMPL;
+    
 }
 
 #define ICON_ALGORITHM_DEF 0

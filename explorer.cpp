@@ -51,6 +51,9 @@
 
 #include "services/shellservices.h"
 #include "jconfig/jcfg.h"
+//#include "hook.h"
+#include "minwinbase.h"
+//#pragma comment(lib,"delayimp.lib")
 
 DynamicLoadLibFct<void(__stdcall *)(BOOL)> g_SHDOCVW_ShellDDEInit(TEXT("SHDOCVW"), 118);
 
@@ -59,6 +62,29 @@ boolean DebugMode = FALSE;
 ExplorerGlobals g_Globals;
 boolean SelectOpt = FALSE;
 
+
+LONG CALLBACK VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
+{
+	DWORD exceptionCode = pExceptionInfo->ExceptionRecord->ExceptionCode;
+	//EXCEPTION_ACCESS_VIOLATION
+		
+	WCHAR szError[MAX_PATH] = { 0 };
+	swprintf(szError, L"exceptionCode=0x%x", exceptionCode);
+	::MessageBoxW(NULL, szError, L"", MB_OK);
+		
+	//0xe06d7363
+	if (STATUS_ENTRYPOINT_NOT_FOUND == exceptionCode)
+	{
+		return EXCEPTION_CONTINUE_EXECUTION;
+	}
+	else
+	{
+	
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+	
+	
+}
 
 ExplorerGlobals::ExplorerGlobals()
 {
@@ -1046,7 +1072,11 @@ static void ChangeUserProfileEnv()
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nShowCmd)
 {
+	//PVOID hExceptionHandler = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
+	//Hook();
     CONTEXT("WinMain()");
+
+	//::MessageBoxW(NULL, lpCmdLine, L"lpCmdLine", MB_OK);
 
     BOOL any_desktop_running = IsAnyDesktopRunning();
 

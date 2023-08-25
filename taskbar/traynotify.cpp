@@ -1448,7 +1448,11 @@ void ClockWindow::Paint()
         DrawText(canvas, _time, -1, &rc_text, DT_CENTER | DT_NOPREFIX | DT_CALCRECT);
         rc_text.right = DPI_SX(rc_text.right);
         rc_text.bottom = DPI_SY(rc_text.bottom);
-        rc.top += (rc.bottom - rc_text.bottom) / 2;
+		if (rc.bottom > rc_text.bottom)
+		{
+			rc.top += (rc.bottom - rc_text.bottom) / 2;
+		}
+        
     }
 
     DrawText(canvas, _time, -1, &rc, DT_CENTER | DT_NOPREFIX);
